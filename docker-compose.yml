@@ -4,11 +4,13 @@ services:
     container_name: upload-service
     restart: always
     ports:
-      - "9923:9923"
+      - "3020:9923"
+    volumes:
+    - /home/oendel/Documentos/uploads:/app/uploads
     environment:
       DEV_ENV: development
-      UPLOAD_FOLDER: C:\\uploads
-    volumes:
-      - C:\\uploads:/app/uploads
-      - .:/app
-      - /app/node_modules
+    networks:
+      - dass_private
+
+networks:
+  dass_private:
