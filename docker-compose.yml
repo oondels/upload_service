@@ -1,0 +1,14 @@
+services:
+  upload-service:
+    build: .
+    container_name: upload-service
+    restart: always
+    ports:
+      - "9923:9923"
+    environment:
+      DEV_ENV: development
+      UPLOAD_FOLDER: C:\\uploads
+    volumes:
+      - C:\\uploads:/app/uploads
+      - .:/app
+      - /app/node_modules
