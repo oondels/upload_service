@@ -1,0 +1,16 @@
+services:
+  upload-service:
+    build: .
+    container_name: upload-service
+    restart: always
+    ports:
+      - "3020:9923"
+    volumes:
+    - /home/oendel/Documentos/uploads:/app/uploads
+    environment:
+      DEV_ENV: development
+    networks:
+      - dass_private
+
+networks:
+  dass_private:
