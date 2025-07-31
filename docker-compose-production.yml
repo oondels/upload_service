@@ -6,7 +6,7 @@ services:
     ports:
       - "3020:9923"
     volumes:
-    - /home/oendel/Documentos/uploads:/app/uploads
+    - /home/oendel/Documentos/uploads:/var/www/dasssest.com/uploads/
     environment:
       DEV_ENV: development
     networks:
