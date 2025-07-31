@@ -5,6 +5,10 @@ const dotenv = require("./dotenv");
 const { v4: uuidv4 } = require("uuid");
 
 const uploadDir = dotenv.UPLOAD_FOLDER;
+if (!uploadDir) {
+  console.error(`Diretório de upload inválido: ${uploadDir}`);
+  throw new Error("Diretório de upload inválido");
+}
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
