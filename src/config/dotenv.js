@@ -7,6 +7,7 @@ require("dotenv").config({
 const vars = {
   RABBITMQ_URL: process.env.RABBITMQ_URL,
   UPLOAD_FOLDER: process.env.UPLOAD_FOLDER || "/app/uploads",
+  FINAL_UPLOAD_FOLDER: process.env.FINAL_UPLOAD_FOLDER || "/home/oendel/Documentos/uploads",
   MAX_FILE_SIZE: process.env.MAX_FILE_SIZE,
   ALLOWED_FILE_TYPES: process.env.ALLOWED_FILE_TYPES,
   DEV_ENV: process.env.DEV_ENV,
