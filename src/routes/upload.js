@@ -18,6 +18,10 @@ router.post("/", upload.array("files"), async (req, res) => {
     if (!serviceName) {
       return res.status(400).json({ error: "O nome do serviço é obrigatório! Use o cabeçalho 'x-service'." });
     }
+    const dassOffice = req.headers["x-dass-office"] || req.query.dassOffice;
+    if (!dassOffice) {
+      return res.status(400).json({ error: "O cabeçalho 'x-dass-office' é obrigatório!" });
+    }
 
     const files = req.files.map((file) => ({
       correlationId: uuidv4(),
@@ -32,6 +36,7 @@ router.post("/", upload.array("files"), async (req, res) => {
       serviceName,
       payload,
       files,
+      dassOffice
     };
 
     await notifyService(message);
@@ -43,7 +48,7 @@ router.post("/", upload.array("files"), async (req, res) => {
     });
   } catch (error) {
     console.error("Erro ao enfileirar upload:", error);
-    res.status(500).json({ error: "Erro ao processar a requisição" });
+    res.status(500).json({ message: "Erro ao processar a requisição" });
   }
 });
 
