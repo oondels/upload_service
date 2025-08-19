@@ -4,7 +4,7 @@ services:
     container_name: upload-service
     restart: always
     ports:
-      - "3020:9923"
+      - "3020:3020"
     volumes:
     - /home/oendel/Documentos/uploads:/app/uploads
     environment:

@@ -6,7 +6,7 @@ const cors = require("cors");
 const uploadRoutes = require("./src/routes/upload");
 
 const app = express();
-const PORT = 9923;
+const PORT = 3020;
 
 const limiter = rateLimit({
   windowMs: 2 * 60 * 1000, // 2 minutos
