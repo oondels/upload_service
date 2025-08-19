@@ -5,17 +5,6 @@ const dotenv = require("./dotenv");
 const { v4: uuidv4 } = require("uuid");
 
 const uploadDir = dotenv.UPLOAD_FOLDER;
-const finalUploadDir = dotenv.FINAL_UPLOAD_FOLDER;
-if (!uploadDir) {
-  console.error(`Diretório de upload inválido: ${uploadDir}`);
-  throw new Error("Diretório de upload inválido");
-}
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
-if (!fs.existsSync(finalUploadDir)) {
-  fs.mkdirSync(finalUploadDir, { recursive: true });
-}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -50,7 +39,7 @@ const storage = multer.diskStorage({
         subFolder = subFolder.replace(/\s+/g, "_").toUpperCase();
       }
 
-      const finalDir = subFolder ? path.join(finalUploadDir, serviceName, subFolder) : path.join(finalUploadDir, serviceName);
+      const finalDir = subFolder ? path.join(uploadDir, serviceName, subFolder) : path.join(uploadDir, serviceName);
       if (!fs.existsSync(finalDir)) {
         fs.mkdirSync(finalDir, { recursive: true });
       }
