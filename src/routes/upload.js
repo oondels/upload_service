@@ -4,6 +4,7 @@ const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const { notifyService } = require("../queues/uploadQueue");
+const dotenv = require("../config/dotenv");
 
 const router = express.Router();
 
@@ -28,6 +29,7 @@ router.post("/", upload.array("files"), async (req, res) => {
       timesTamp: new Date().toISOString(),
       fileSize: file.size,
       filePath: file.path,
+      fileUrl: dotenv.FILE_URL_PATH + file.path.split(dotenv.UPLOAD_FOLDER)[1], // FILE_URL_PATH -> Pasta do arquivo configurada para servir no apache
       fileName: file.filename,
       title: path.basename(file.path),
     }));
@@ -38,6 +40,8 @@ router.post("/", upload.array("files"), async (req, res) => {
       files,
       dassOffice
     };
+
+    console.log(files);
 
     await notifyService(message);
 
