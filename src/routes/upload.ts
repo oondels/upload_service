@@ -1,69 +1,56 @@
-import { Router, Request, Response, RequestHandler } from "express";
-import upload from "../config/multer";
-import { v4 as uuidv4 } from "uuid";
-import path from "path";
-import { notifyService } from "../queues/uploadQueue";
-import env from "../config/env";
+import { Router, Request, Response } from 'express';
+import multer from 'multer';
+import { ProcessUploadUseCase } from '../application/useCases/ProcessUploadUseCase';
+import { ApplicationRepository } from '../infrastructure/database/repositories/ApplicationRepository';
+import { DocumentRepository } from '../infrastructure/database/repositories/DocumentRepository';
+import { BullMQQueueProvider } from '../infrastructure/messaging/BullMQQueueProvider';
 
 const router = Router();
+const upload = multer({ dest: 'tmp/' }); // Armazenamento temporário inicial
 
-const uploadHandler: RequestHandler = async (req: Request, res: Response): Promise<void> => {
+// Inicializa as dependências (Injeção de Dependência manual)
+const applicationRepo = new ApplicationRepository();
+const documentRepo = new DocumentRepository();
+const queueProvider = new BullMQQueueProvider();
+const processUploadUseCase = new ProcessUploadUseCase(applicationRepo, documentRepo, queueProvider);
+
+router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const files = req.files as Express.Multer.File[];
-    if (!files || files.length === 0) {
-      res.status(400).json({ error: "Nenhum arquivo enviado" });
+    if (!req.file) {
+      res.status(400).json({ error: 'Nenhum arquivo enviado.' });
       return;
     }
 
-    const payload = req.body.data;
-    const serviceName = (req.headers["x-service"] as string) || (req.query.service as string);
-    if (!serviceName) {
-      res.status(400).json({ error: "O nome do serviço é obrigatório! Use o cabeçalho 'x-service'." });
-      return;
-    }
-    
-    const dassOffice = (req.headers["x-dass-office"] as string) || (req.query.dassOffice as string);
-    if (!dassOffice) {
-      res.status(400).json({ error: "O cabeçalho 'x-dass-office' é obrigatório!" });
+    const { applicationFolderName, retentionDays } = req.body;
+
+    if (!applicationFolderName) {
+      res.status(400).json({ error: 'applicationFolderName é obrigatório no corpo da requisição.' });
       return;
     }
 
-    const mappedFiles = files.map((file) => ({
-      correlationId: uuidv4(),
-      timesTamp: new Date().toISOString(),
-      fileSize: file.size,
-      filePath: file.path,
-      fileUrl: env.FILE_URL_PATH + file.path.split(env.UPLOAD_FOLDER)[1],
-      fileName: file.filename,
-      title: path.basename(file.path),
-    }));
-
-    const message = {
-      serviceName,
-      payload,
-      files: mappedFiles,
-      dassOffice
-    };
-
-    console.log(mappedFiles);
-
-    await notifyService(message);
-
-    res.json({
-      message: "Uploads enfileirados para processamento!",
-      files: mappedFiles,
-      serviceName,
+    const correlationId = await processUploadUseCase.execute({
+      applicationFolderName,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      sizeBytes: req.file.size,
+      retentionDays: retentionDays ? parseInt(retentionDays, 10) : undefined,
+      tempFilePath: req.file.path
     });
-  } catch (error) {
-    console.error("Erro ao enfileirar upload:", error);
-    res.status(500).json({ message: "Erro ao processar a requisição" });
+
+    res.status(202).json({
+      message: 'Upload aceito e enviado para processamento na fila.',
+      correlationId
+    });
+  } catch (error: any) {
+    console.error('Erro na rota de upload:', error);
+    
+    if (error.message === 'Application not found or inactive') {
+      res.status(403).json({ error: 'Aplicação não autorizada ou inexistente.' });
+      return;
+    }
+
+    res.status(500).json({ error: 'Erro interno do servidor ao processar o upload.' });
   }
-};
-
-router.post("/", upload.array("files"), uploadHandler);
-
-router.get("/", (req: Request, res: Response) => {
-  res.json({ message: "Upload service is running" });
 });
 
 export default router;

@@ -14,12 +14,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "amqplib": "^0.10.5",
+    "bullmq": "^5.78.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "helmet": "^8.0.0",
+    "ioredis": "^5.11.1",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.21.0",
     "reflect-metadata": "^0.2.2",
@@ -28,7 +29,6 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.10.8",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",

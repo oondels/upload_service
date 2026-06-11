@@ -8,7 +8,7 @@ dotenv.config({
 });
 
 interface EnvVars {
-  RABBITMQ_URL: string;
+  REDIS_URL: string;
   UPLOAD_FOLDER: string;
   FILE_URL_PATH: string;
   MAX_FILE_SIZE: string;
@@ -22,7 +22,7 @@ interface EnvVars {
 }
 
 const vars: EnvVars = {
-  RABBITMQ_URL: process.env.RABBITMQ_URL || "",
+  REDIS_URL: process.env.REDIS_URL || "",
   UPLOAD_FOLDER: process.env.UPLOAD_FOLDER || "",
   FILE_URL_PATH: process.env.FILE_URL_PATH || "http://localhost/uploads/",
   MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || "",
