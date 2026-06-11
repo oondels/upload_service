@@ -1,4 +1,6 @@
+import 'reflect-metadata';
 import express from "express";
+import { AppDataSource } from "./infrastructure/database/data-source";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
@@ -19,6 +21,11 @@ app.use(express.json());
 app.use(limiter);
 app.use(uploadRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Uploading service running on port ${PORT}`);
-});
+AppDataSource.initialize()
+  .then(() => {
+    console.log("Banco de dados conectado com sucesso via TypeORM.");
+    app.listen(PORT, () => {
+      console.log(`Uploading service running on port ${PORT}`);
+    });
+  })
+  .catch((error) => console.log("Erro ao conectar no banco de dados:", error));

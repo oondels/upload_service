@@ -14,6 +14,11 @@ interface EnvVars {
   MAX_FILE_SIZE: string;
   ALLOWED_FILE_TYPES: string;
   DEV_ENV?: string;
+  DB_HOST?: string;
+  DB_PORT?: string;
+  DB_USER?: string;
+  DB_PASSWORD?: string;
+  DB_NAME?: string;
 }
 
 const vars: EnvVars = {
@@ -23,6 +28,11 @@ const vars: EnvVars = {
   MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || "",
   ALLOWED_FILE_TYPES: process.env.ALLOWED_FILE_TYPES || "",
   DEV_ENV: process.env.DEV_ENV,
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT,
+  DB_USER: process.env.DB_USER,
+  DB_PASSWORD: process.env.DB_PASSWORD,
+  DB_NAME: process.env.DB_NAME,
 };
 
 export default vars;
