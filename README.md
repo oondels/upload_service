@@ -1,77 +1,39 @@
-# PI de Upload de Arquivos
+# DASS Upload Service
 
-Esta API permite o upload seguro de arquivos, organizando-os automaticamente em diretórios separados por serviço. Utiliza **Node.js**, **Express**, **Multer** e **Sharp** para processamento de imagens.
+## Sobre
 
----
+API centralizada para gestão, otimização e armazenamento de documentos e imagens corporativas do ecossistema DASS.
+Este serviço recebe uploads, orquestra a otimização de imagens de forma assíncrona usando filas, armazena os arquivos de forma segura em disco de VPS e limpa registros expirados automaticamente.
 
-## **Instalação e Configuração**
+> [!IMPORTANT]
+> Este arquivo é apenas uma visão geral.
+>
+> Para entender arquitetura, domínio, fluxos, permissões e integrações, leia:
+>
+> - [docs/DESIGN_SPEC.md](docs/DESIGN_SPEC.md)
 
-### ** Configurar as variáveis de ambiente**
+## Stack
 
-Crie um arquivo **`.env.production`** e defina as configurações:
+### Backend
+- Node.js com TypeScript
+- Express.js
+- BullMQ (Mensageria assíncrona)
+- Sharp (Processamento de Imagens)
+- Multer
 
-```
-RABBITMQ_URL=<Url broker de mensagem>
-UPLOAD_FOLDER=<pasta do servidor a se salvar>
-FILE_URL_PATH=<Pasta servida via apache/nginx para acesso via <ip>/pasta>
-MAX_FILE_SIZE=5 <mb>
-ALLOWED_FILE_TYPES=.jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp
-DEV_ENV=
-```
+### Banco de Dados
+- PostgreSQL
 
-### **Executar a API com Docker**
+### Infraestrutura
+- Redis (Docker - Ecossistema)
+- Disco Local da VPS (Storage)
 
-```
-docker compose -f docker-compose-production.yml up
-```
+## Como Executar
 
-A API estará rodando na porta **PORT**.
-
----
-
-## **Rotas da API**
-
-### **Upload de arquivos**
-
-**Endpoint:** `POST /`
-
-### **Headers**:
-
-Adicione as Headers de acordo com a necessidade de sub pastas e reconhecimento de processo/aplicação
-
-Exemplo:
-```
-{
-  "x-service": "fotos" // Nome do serviço (cria pasta automática)
-}
-
+```bash
+npm install
+npm run dev
 ```
 
-### **Body (Form-Data):**
-
-| Campo  | Tipo | Descrição                      |
-| ------ | ---- | ------------------------------ |
-| `file` | File | Arquivo a ser enviado (imagem) |
-
----
-
-
----
-
-## **Segurança Implementada**
-
-✅ **Uploads organizados em pastas separadas por serviço**
-✅ **Tamanho máximo de arquivos limitado a 5MB**
-✅ **Somente tipos de arquivo permitidos (JPEG, PNG, GIF, ...)**
-✅ **Proteção contra execução de scripts no diretório de upload**
-✅ **Rate Limiting (200 requisições por IP a cada 2 min)**
-✅ **Helmet ativado para segurança extra contra ataques comuns**
-
----
-
-**Body (Form-Data):**
-
-- **Key:** `file` (tipo: `File`)
-- **Escolha uma imagem** e envie.
-
----
+## Documentação
+- [Design Spec](docs/DESIGN_SPEC.md)
