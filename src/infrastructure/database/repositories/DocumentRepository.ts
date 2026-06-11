@@ -35,6 +35,10 @@ export class DocumentRepository implements IDocumentRepository {
     await this.repo.update(id, { status, updatedAt: new Date() });
   }
 
+  async updatePaths(id: string, filePath: string, fileUrl: string): Promise<void> {
+    await this.repo.update(id, { filePath, fileUrl, updatedAt: new Date() });
+  }
+
   async findByCorrelationId(correlationId: string): Promise<UploadedDocument | null> {
     const entity = await this.repo.findOne({ where: { correlationId } });
     return entity ? entity.toDomain() : null;
