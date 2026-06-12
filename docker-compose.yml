@@ -6,7 +6,7 @@ services:
     ports:
       - "3020:3020"
     volumes:
-    - /home/oendel/Documentos/uploads:/app/uploads
+      - /home/oendel/Documentos/uploads:/app/uploads
     environment:
       DEV_ENV: development
     networks:
