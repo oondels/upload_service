@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { DocumentRepository } from '../database/repositories/DocumentRepository';
 import { LocalDiskStorageProvider } from '../storage/LocalDiskStorageProvider';
 import { ApplicationRepository } from '../database/repositories/ApplicationRepository';
+import { logger } from '../../utils/logger';
 
 export class BullMQWorker {
   private worker: Worker;
@@ -25,17 +26,17 @@ export class BullMQWorker {
     });
 
     this.worker.on('completed', (job) => {
-      console.log(`[Worker] Job ${job.id} completed successfully.`);
+      logger.info({ jobId: job.id }, `[Worker] Job completed successfully.`);
     });
 
     this.worker.on('failed', (job, err) => {
-      console.error(`[Worker] Job ${job?.id} failed with error:`, err.message);
+      logger.error({ jobId: job?.id, error: err.message }, `[Worker] Job failed with error`);
     });
   }
 
   private async processJob(job: Job): Promise<void> {
     const { correlationId, tempFilePath } = job.data;
-    console.log(`[Worker] Processing upload job for correlationId: ${correlationId}`);
+    logger.info({ correlationId }, `[Worker] Processing upload job`);
 
     const document = await this.documentRepo.findByCorrelationId(correlationId);
     if (!document) {
@@ -61,7 +62,7 @@ export class BullMQWorker {
       await this.documentRepo.updatePaths(document.id, filePath, fileUrl);
       await this.documentRepo.updateStatus(document.id, 'SAVED');
 
-      console.log(`[Worker] Upload processado e salvo em: ${filePath}`);
+      logger.info({ filePath }, `[Worker] Upload processado e salvo`);
     } catch (error: any) {
       await this.documentRepo.updateStatus(document.id, 'FAILED');
       throw error;

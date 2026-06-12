@@ -3,6 +3,7 @@ import express from "express";
 import { AppDataSource } from "./infrastructure/database/data-source";
 import { BullMQWorker } from "./infrastructure/messaging/BullMQWorker";
 import { CronJobService } from "./infrastructure/jobs/CronJobService";
+import { logger } from "./utils/logger";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
@@ -25,7 +26,7 @@ app.use(uploadRoutes);
 
 AppDataSource.initialize()
   .then(() => {
-    console.log("Banco de dados conectado com sucesso via TypeORM.");
+    logger.info("Banco de dados conectado com sucesso via TypeORM.");
     
     // Inicia os serviços de Background e Cron Jobs
     new BullMQWorker();
@@ -33,7 +34,7 @@ AppDataSource.initialize()
     cronService.startJobs();
 
     app.listen(PORT, () => {
-      console.log(`Uploading service running on port ${PORT}`);
+      logger.info(`Uploading service running on port ${PORT}`);
     });
   })
-  .catch((error) => console.log("Erro ao conectar no banco de dados:", error));
+  .catch((error) => logger.error({ err: error }, "Erro ao conectar no banco de dados"));

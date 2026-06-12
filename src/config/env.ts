@@ -19,6 +19,8 @@ interface EnvVars {
   DB_USER?: string;
   DB_PASSWORD?: string;
   DB_NAME?: string;
+  OTL_TRACE_EXPORTER_URL?:string;
+  OTL_METRICS_EXPORTER_URL?:string;
 }
 
 const vars: EnvVars = {
@@ -33,6 +35,8 @@ const vars: EnvVars = {
   DB_USER: process.env.DB_USER,
   DB_PASSWORD: process.env.DB_PASSWORD,
   DB_NAME: process.env.DB_NAME,
+  OTL_METRICS_EXPORTER_URL: process.env.OTL_METRICS_EXPORTER_URL,
+  OTL_TRACE_EXPORTER_URL: process.env.OTL_TRACE_EXPORTER_URL,
 };
 
 export default vars;

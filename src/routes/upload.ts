@@ -14,6 +14,12 @@ const documentRepo = new DocumentRepository();
 const queueProvider = new BullMQQueueProvider();
 const processUploadUseCase = new ProcessUploadUseCase(applicationRepo, documentRepo, queueProvider);
 
+router.get("/", (req: Request, res: Response) => {
+  res.status(200).json({
+    message: "Upload service is running!"
+  })
+})
+
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.file) {
