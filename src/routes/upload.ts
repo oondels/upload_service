@@ -4,6 +4,7 @@ import { ProcessUploadUseCase } from '../application/useCases/ProcessUploadUseCa
 import { ApplicationRepository } from '../infrastructure/database/repositories/ApplicationRepository';
 import { DocumentRepository } from '../infrastructure/database/repositories/DocumentRepository';
 import { BullMQQueueProvider } from '../infrastructure/messaging/BullMQQueueProvider';
+import { logger } from '../utils/logger';
 
 const router = Router();
 const upload = multer({ dest: 'tmp/' }); // Armazenamento temporário inicial
@@ -23,6 +24,7 @@ router.get("/", (req: Request, res: Response) => {
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.file) {
+      logger.warn("Nenhum arquivo enviado.")
       res.status(400).json({ error: 'Nenhum arquivo enviado.' });
       return;
     }

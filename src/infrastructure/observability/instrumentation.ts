@@ -12,7 +12,7 @@ import { logger } from '../../utils/logger';
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'uploadService',
-    [ATTR_SERVICE_VERSION]: '1.0',
+    [ATTR_SERVICE_VERSION]: vars.SERVICE_VERSION,
   }),
   traceExporter: new OTLPTraceExporter({ url: vars.OTL_TRACE_EXPORTER_URL }),
   metricReader: new PeriodicExportingMetricReader({

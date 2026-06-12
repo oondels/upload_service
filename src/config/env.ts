@@ -21,6 +21,7 @@ interface EnvVars {
   DB_NAME?: string;
   OTL_TRACE_EXPORTER_URL?:string;
   OTL_METRICS_EXPORTER_URL?:string;
+  SERVICE_VERSION: string;
 }
 
 const vars: EnvVars = {
@@ -37,6 +38,7 @@ const vars: EnvVars = {
   DB_NAME: process.env.DB_NAME,
   OTL_METRICS_EXPORTER_URL: process.env.OTL_METRICS_EXPORTER_URL,
   OTL_TRACE_EXPORTER_URL: process.env.OTL_TRACE_EXPORTER_URL,
+  SERVICE_VERSION: process.env.SERVICE_VERSION || "1.0.0",
 };
 
 export default vars;
