@@ -1,53 +1,53 @@
 # Flow Specification — DASS Upload Service
 
-> [!NOTE]
-> Para entidades e status, leia [DOMAIN_SPEC.md](DOMAIN_SPEC.md).
+## 1. CRUD de Aplicações
 
----
+Objetivo: manter o cadastro de aplicações autorizadas em `core.applications`.
 
-## 1. Fluxo de Upload Assíncrono
+Fluxo:
+1. Cliente administrativo chama `/api/v1/applications`.
+2. A rota valida payload básico e delega aos use cases de aplicação.
+3. Use cases validam `name`, `folderName`, unicidade e soft delete.
+4. Repositório TypeORM persiste em `core.applications`.
 
-### Objetivo
-Permitir a recepção segura de grandes lotes de uploads sem congestionamento (Event-Loop blocked) do servidor e garantir compressão eficiente das mídias.
+Observação de segurança: o CRUD não possui autenticação interna nesta versão; deve ficar atrás de rede privada ou proxy externo.
 
-### Etapas
+## 2. Upload Assíncrono
 
-#### Etapa 1 — Recepção e Reserva HTTP (`QUEUED`)
-- **Quem:** API Controller e Provider Local (`multer`).
-- **Pré-condição:** A tag `application` informada encontra respaldo num registro `isActive = true` no banco.
-- **Ação:** O controller salva fisicamente a imagem crua no ambiente temporário (`/storage/tmp`). A API persiste no Postgres o tracking em `QUEUED` com o `expiresAt` calculado.
-- **Efeito colateral:** Produz um *job* imediato na fila BullMQ (`queue: upload-processor`).
-- **Retorno HTTP:** A borda encerra a conexão rápido e envia um JSON *202 Accepted* com o `correlationId`.
+### Etapa 1 — Recepção HTTP (`QUEUED`)
 
-#### Etapa 2 — Processamento de Imagem (`COMPACTING`)
-- **Quem:** Worker local do BullMQ escutando `upload-processor`.
-- **Pré-condição:** Job existente no Redis; registro PostgreSQL localizado.
-- **Ação:** O Worker atualiza o banco para `COMPACTING`. Instancia a leitura do buffer do diretório `/tmp` via biblioteca Sharp, e realiza conversão otimizada (ex: para formato webp, resize de max Width/Height padronizados).
+- Endpoint principal: `POST /api/v1/uploads`.
+- `multer` grava arquivo em `tmp/`, respeitando `MAX_FILE_SIZE` e `ALLOWED_FILE_TYPES`.
+- `ProcessUploadUseCase` verifica `application` em `core.applications.folder_name` com `isActive=true`.
+- O documento é criado em `uploads.uploaded_documents` com `status=QUEUED`, `correlationId`, `fileName={correlationId}.webp` e `expiresAt` calculado quando `persistence` existe.
+- Um job é publicado na fila BullMQ `document_uploads`.
+- A API retorna `202 Accepted`.
 
-#### Etapa 3 — Escrita Definitiva em Disco (`SAVED`)
-- **Quem:** Worker do BullMQ.
-- **Ação:** O Worker realiza o dump file da versão comprimida para a árvore definitiva: `/storage/{application.folderName}/{generatedUuid}.webp`.
-- **Persistência:** Commita um `UPDATE` no PostgreSQL para `SAVED`, registrando as rotas em `fileUrl` e `filePath`.
-- **Limpeza colateral atômica:** Invoca o serviço de I/O de disco e deleta obrigatoriamente a origem crua dentro do `/tmp`.
+### Etapa 2 — Compressão (`COMPACTING`)
 
----
+- `BullMQWorker` consome `document_uploads`.
+- Busca documento e aplicação no banco.
+- Atualiza status para `COMPACTING`.
+- Usa Sharp para aplicar `rotate()`, resize `fit=inside` sem upscale e conversão WebP.
+- Parâmetros principais vêm de env: `IMAGE_WEBP_QUALITY`, `IMAGE_MAX_WIDTH`, `IMAGE_MAX_HEIGHT`.
 
-## 2. Fluxo de Retenção e Higienização de I/O (Cron Job)
+### Etapa 3 — Escrita Definitiva (`SAVED`)
 
-### Objetivo
-Servir como o coletor de lixo corporativo, evitando a interrupção da VPS DASS por erro clássico de limite de armazenamento atingido (No space left on device).
+- Storage grava buffer WebP em `UPLOAD_FOLDER/{application.folderName}/{correlationId}.webp`.
+- Storage valida que o caminho final permanece dentro de `UPLOAD_FOLDER`.
+- Banco atualiza `filePath`, `fileUrl`, `mimeType=image/webp` e `status=SAVED`.
+- Arquivo temporário é removido.
 
-### Etapas
+### Falhas
 
-#### Etapa 1 — Scheduler (Varredura)
-- **Quem:** Thread cron paralela.
-- **Frequência Sugerida:** Diariamente as 03h00 AM.
-- **Ação:** Executa um SELECT rápido utilizando indexação: `WHERE expires_at < NOW() AND status = 'SAVED'`. 
+- Se o worker falha após encontrar o documento, marca `FAILED`.
+- O temporário é removido quando possível.
+- Falhas de aplicação inexistente ou documento ausente abortam o job.
 
-#### Etapa 2 — Descarte de Lixo Físico
-- **Quem:** Storage Service.
-- **Ação:** Para o cursor iterado na query, chama primitivas `fs.unlinkSync()` para os blocos apontados nos `filePaths` respectivos, apagando fisicamente da VPS.
+## 3. Retenção e Limpeza
 
-#### Etapa 3 — Manutenção da Verdade Histórica
-- **Quem:** Database Repository.
-- **Ação:** Invoca batch update comutando todos os processados na etapa 2 para o status terminador `EXPIRED_DELETED`. A auditoria (quando chegou, que sistema foi, peso) ficará para sempre disponível.
+- `CronJobService` roda diariamente às `02:00`.
+- Busca documentos `SAVED` com `expiresAt < now()`.
+- Remove arquivo físico via storage.
+- Atualiza status para `EXPIRED_DELETED`.
+- O registro histórico permanece no PostgreSQL.

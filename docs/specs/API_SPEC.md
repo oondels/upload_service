@@ -1,66 +1,108 @@
 # API Specification — DASS Upload Service
 
-> [!NOTE]
-> Regras de negócio restritivas e detalhamento profundo de status válidos encontram-se no documento [DOMAIN_SPEC.md](DOMAIN_SPEC.md).
-
----
-
 ## 1. Convenções
-- Formato predominante de Payload e Response: JSON.
-- A recepção massiva de bytes ocorre unicamente via protocolo de transferência `multipart/form-data`.
 
----
+- API principal versionada em `/api/v1`.
+- Payloads JSON, exceto upload de arquivo via `multipart/form-data`.
+- `POST /upload` existe apenas como alias legado deprecated.
 
-## 2. Endpoints Operacionais
+## 2. Aplicações Autorizadas
 
-### 2.1 Criação/Enfileiramento de Imagens
+`core.applications` controla quais sistemas podem gravar arquivos no serviço. O CRUD não possui autenticação interna nesta versão; a proteção deve ser feita por rede privada ou proxy externo.
 
-**Endpoint:** `POST /api/v1/uploads`
+### `GET /api/v1/applications`
 
-O endpoint core. Modificado arquiteturalmente para descartar o perigoso `filePath` do input e priorizar restrições puras por domínio da Aplicação cadastrada.
+Retorna todas as aplicações cadastradas.
 
-**Body (multipart/form-data):**
-| Chave (Key) | Tipo | Descrição Obrigatória |
-|---|---|---|
-| `file` | File Buffer | Array binário primário do artefato enviado pela rede. |
-| `application` | Text/String | Nome/slug da aplicação autorizada (ex: `pense-e-aja`). Esta chave será interligada com `applications.folder_name` no Postgres. |
-| `persistence` | Number (opcional) | A representação matemática de limite em Dias para expurgo (ex: 30 = limpar arquivo dia t+30). Parâmetro vazio garante guarda vitalícia do ativo. |
-
-**Response Modelo Híbrido Assíncrono `202 Accepted`:**
 ```json
 {
-  "message": "Protocolo estabelecido. Artefato em processamento de buffer local.",
-  "correlationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Pense e Aja",
+      "folderName": "pense-e-aja",
+      "isActive": true,
+      "createdAt": "2026-07-14T00:00:00.000Z",
+      "updatedAt": "2026-07-14T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `GET /api/v1/applications/{id}`
+
+Retorna uma aplicação por ID. Responde `404` quando não encontrada.
+
+### `POST /api/v1/applications`
+
+```json
+{
+  "name": "Pense e Aja",
+  "folderName": "pense-e-aja",
+  "isActive": true
+}
+```
+
+Regras:
+- `name` é obrigatório e limitado a 255 caracteres.
+- `folderName` é obrigatório, único e deve casar `^[a-z0-9_-]{3,100}$`.
+- `isActive` é opcional e assume `true`.
+
+Respostas: `201`, `400` para validação, `409` para duplicidade.
+
+### `PUT /api/v1/applications/{id}`
+
+Atualiza `name`, `folderName` e/ou `isActive`. Ao menos um campo deve ser enviado.
+
+Respostas: `200`, `400`, `404`, `409`.
+
+### `DELETE /api/v1/applications/{id}`
+
+Soft delete administrativo: marca `isActive=false` e preserva histórico. Não remove registros físicos nem documentos vinculados.
+
+## 3. Uploads
+
+### `POST /api/v1/uploads`
+
+Recebe upload e enfileira processamento assíncrono.
+
+Body `multipart/form-data`:
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---:|---|
+| `file` | File | Sim | Imagem original. |
+| `application` | string | Sim | `folderName` de uma aplicação ativa. |
+| `persistence` | integer | Não | Dias até expiração física. Ausente significa retenção indefinida. |
+
+Resposta `202`:
+
+```json
+{
+  "message": "Upload aceito e enviado para processamento na fila.",
+  "correlationId": "uuid",
   "status": "QUEUED"
 }
 ```
 
-**Possíveis Failures HTTP:**
-- `400 Bad Request`: Validation de persistência que não seja integer. Ausência de blob no req.files.
-- `403 Forbidden`: Parâmetro 'application' informou um token de aplicativo inexistente, inativo no SQL ou desabilitado da esteira.
+Falhas principais:
+- `400`: arquivo ausente, tipo inválido, tamanho excedido ou `persistence` inválido.
+- `403`: aplicação inexistente ou inativa.
+- `500`: falha inesperada no processamento inicial.
 
----
+### `POST /upload` Deprecated
 
-### 2.2 Polling / Interrogação de Integridade Final (Callback Alternativo)
+Alias temporário. Usa os campos legados `applicationFolderName` e `retentionDays`, retorna header `Deprecation: true` e aponta para `/api/v1/uploads`.
 
-**Endpoint:** `GET /api/v1/uploads/{correlationId}`
+### `GET /api/v1/uploads/{correlationId}`
 
-Endpoint auxiliar caso arquiteturas satélite não possuam RabbitMQ/BullMQ configurados de volta pra consumir encerramentos, podendo apenas bater HTTP p/ checar.
+Consulta o status do upload.
 
-**Response `200 OK` (Se Processado):**
 ```json
 {
-  "correlationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "correlationId": "uuid",
   "status": "SAVED",
-  "fileUrl": "http://dass.uploads/pense-e-aja/213-f47a.webp"
+  "fileUrl": "http://localhost:3020/uploads/pense-e-aja/uuid.webp"
 }
 ```
 
-**Response `200 OK` (Ainda em Worker Sharp):**
-```json
-{
-  "correlationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "status": "COMPACTING",
-  "fileUrl": null
-}
-```
+`fileUrl` é `null` enquanto o documento ainda não possui arquivo final.

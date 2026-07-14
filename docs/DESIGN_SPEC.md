@@ -1,48 +1,35 @@
 # Design Specification — DASS Upload Service
 
-Este documento é o mapa central de engenharia do projeto.
-
-Ele não substitui as specs específicas. Use este arquivo para decidir quais documentos devem ser lidos antes de implementar, corrigir ou revisar uma funcionalidade.
-
----
-
-## Arquitetura de Documentação
-
-A documentação segue o princípio de Lazy Loading de Contexto.
-Leia primeiro este arquivo. Depois, abra apenas as specs necessárias para a tarefa atual.
-
-> [!WARNING]
-> Não carregue todas as specs sem necessidade.
-> Para economizar contexto e reduzir risco de interpretação incorreta, leia apenas os arquivos relacionados à alteração em andamento.
-
----
+Este documento é o mapa central de engenharia do projeto. Leia primeiro este arquivo e depois apenas a spec relacionada à alteração.
 
 ## Índice de Specs
 
 | Spec | Escopo | Quando ler |
 |---|---|---|
-| [DOMAIN_SPEC.md](specs/DOMAIN_SPEC.md) | Entidades (Application, UploadedDocument) e status | Alterações em entidades, campos, status ou retenção |
-| [FLOW_SPEC.md](specs/FLOW_SPEC.md) | Fluxos assíncronos (Upload) e CronJobs | Alterações em jornadas de upload, BullMQ ou limpeza |
-| [DATABASE_SPEC.md](specs/DATABASE_SPEC.md) | Schemas do PostgreSQL | Alterações em banco, migrations ou índices |
-| [API_SPEC.md](specs/API_SPEC.md) | Contratos HTTP | Alterações em endpoints |
-| [SECURITY_SPEC.md](specs/SECURITY_SPEC.md) | Validações e Path Traversal | Alterações em geração de caminhos, storage ou autorização |
+| [DOMAIN_SPEC.md](specs/DOMAIN_SPEC.md) | Entidades `Application`, `UploadedDocument`, status e invariantes | Alterações em domínio, retenção ou status |
+| [FLOW_SPEC.md](specs/FLOW_SPEC.md) | Fluxos assíncronos de upload, Sharp, BullMQ e cron | Alterações em worker, fila, cron ou upload |
+| [DATABASE_SPEC.md](specs/DATABASE_SPEC.md) | Schemas PostgreSQL, migrations, índices e constraints | Alterações em banco, migrations ou entidades TypeORM |
+| [API_SPEC.md](specs/API_SPEC.md) | Contratos HTTP versionados | Alterações em rotas, payloads ou respostas |
+| [SECURITY_SPEC.md](specs/SECURITY_SPEC.md) | Validação, path traversal, limites e superfície administrativa | Alterações em storage, autorização ou validação |
 
----
-
-## Separação Física do Projeto (Clean Architecture)
+## Estrutura
 
 ```text
 src/
-├── domain/                  # Entidades principais e contratos/interfaces de domínio
-├── application/             # Casos de uso e orquestração de negócios (Use Cases)
-├── infrastructure/          # Detalhes de implementação (HTTP, Postgres, BullMQ, Storage)
-└── main/                    # Injeção de dependências e inicialização (Composition Root)
+├── domain/                  # Entidades e contratos
+├── application/             # Use cases e regras de aplicação
+├── infrastructure/          # TypeORM, BullMQ, storage, cron e observabilidade
+├── routes/                  # Adaptadores HTTP Express
+├── app.ts                   # Composition root HTTP
+└── index.ts                 # Bootstrap de banco, worker, cron e servidor
 ```
 
----
+## Regras Gerais
 
-## Regras Gerais de Arquitetura
-
-1. **Inversão de Dependências:** Casos de uso NUNCA instanciam conexões com banco de dados, storage ou mensageria diretamente. Eles devem usar as interfaces definidas em `domain/contracts/`.
-2. **Stateless Edge:** As requisições HTTP da borda (`routes/controllers`) devem ser extremamente rápidas. Salvam fisicamente de forma temporária, reservam no banco e delegam o trabalho de transformação de imagem (Sharp) e salvamento definitivo para *workers* assíncronos via BullMQ.
-3. **Imutabilidade de Auditoria:** Arquivos físicos podem ser removidos do disco por rotinas de cron job, mas o registro histórico no PostgreSQL é imutável em seu rastreio temporal (apenas a coluna status sofre mutação final para `EXPIRED_DELETED`).
+1. Use cases dependem apenas de contratos do domínio. Não instanciam banco, fila, filesystem ou Sharp.
+2. Rotas HTTP são adaptadores finos: validam entrada transport-level, chamam use cases e traduzem erros para HTTP.
+3. Uploads são assíncronos: a borda registra `QUEUED` e o worker faz compressão WebP e gravação definitiva.
+4. Registros de documentos são auditáveis. O cron remove arquivo físico expirado, mas mantém o histórico como `EXPIRED_DELETED`.
+5. `core.applications` é o gateway de autorização por aplicação; upload só aceita aplicações ativas.
+6. CRUD administrativo de aplicações não tem autenticação interna nesta versão e deve ser protegido por rede/proxy externo.
+7. Documentação deve ser atualizada no mesmo ciclo das mudanças de contrato, domínio, banco ou fluxo.
