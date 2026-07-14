@@ -10,7 +10,19 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "types": [
+      "node",
+      "jest"
+    ]
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "**/__tests__/**",
+    "jest.config.js",
+    "dist",
+    "node_modules"
+  ]
 }
