@@ -8,22 +8,24 @@ export class LocalDiskStorageProvider implements IStorageProvider {
   private baseUrl: string;
 
   constructor() {
-    this.baseStoragePath = env.UPLOAD_FOLDER || path.join(__dirname, '../../../../uploads');
+    this.baseStoragePath = path.resolve(env.UPLOAD_FOLDER || path.join(__dirname, '../../../../uploads'));
     this.baseUrl = env.FILE_URL_PATH || 'http://localhost:3020/uploads/';
   }
 
   async moveToFinalDestination(tempPath: string, appFolderName: string, finalFileName: string): Promise<{ filePath: string; fileUrl: string; }> {
-    const appFolder = path.join(this.baseStoragePath, appFolderName);
-    
+    const { appFolder, finalPath } = await this.resolveFinalPath(appFolderName, finalFileName);
     await fs.mkdir(appFolder, { recursive: true });
-
-    const finalPath = path.join(appFolder, finalFileName);
-    
     await fs.rename(tempPath, finalPath);
 
-    const fileUrl = `${this.baseUrl}${appFolderName}/${finalFileName}`;
-    
-    return { filePath: finalPath, fileUrl };
+    return { filePath: finalPath, fileUrl: this.buildFileUrl(appFolderName, finalFileName) };
+  }
+
+  async saveBufferToFinalDestination(buffer: Buffer, appFolderName: string, finalFileName: string): Promise<{ filePath: string; fileUrl: string; }> {
+    const { appFolder, finalPath } = await this.resolveFinalPath(appFolderName, finalFileName);
+    await fs.mkdir(appFolder, { recursive: true });
+    await fs.writeFile(finalPath, buffer);
+
+    return { filePath: finalPath, fileUrl: this.buildFileUrl(appFolderName, finalFileName) };
   }
 
   async deleteFile(filePath: string): Promise<void> {
@@ -34,5 +36,25 @@ export class LocalDiskStorageProvider implements IStorageProvider {
         throw error;
       }
     }
+  }
+
+  private async resolveFinalPath(appFolderName: string, finalFileName: string): Promise<{ appFolder: string; finalPath: string }> {
+    const appFolder = path.resolve(this.baseStoragePath, appFolderName);
+    const finalPath = path.resolve(appFolder, finalFileName);
+
+    if (!this.isInsideBasePath(appFolder) || !this.isInsideBasePath(finalPath)) {
+      throw new Error('Invalid storage path.');
+    }
+
+    return { appFolder, finalPath };
+  }
+
+  private isInsideBasePath(targetPath: string): boolean {
+    const relativePath = path.relative(this.baseStoragePath, targetPath);
+    return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+  }
+
+  private buildFileUrl(appFolderName: string, finalFileName: string): string {
+    return `${this.baseUrl.replace(/\/$/, '')}/${appFolderName}/${finalFileName}`;
   }
 }

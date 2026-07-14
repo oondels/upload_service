@@ -1,73 +1,45 @@
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import env from "./env";
-import { v4 as uuidv4 } from "uuid";
-import { Request } from "express";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import env from './env';
 
-const uploadDir = env.UPLOAD_FOLDER;
+function getAllowedTypes(): string[] {
+  return env.ALLOWED_FILE_TYPES
+    .split(',')
+    .map((type) => type.trim().toLowerCase())
+    .filter(Boolean);
+}
 
-const storage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb) => {
-    try {
-      let data: any;
-      if (req.body.data) {
-        data = JSON.parse(req.body.data);
-      }
-      
-      let serviceName = (req.headers["x-service"] as string) || (req.query.service as string);
-      if (!serviceName && req.body.data && data) {
-        serviceName = data.nome;
-      }
+function getMaxFileSizeBytes(): number {
+  const megabytes = Number.parseInt(env.MAX_FILE_SIZE, 10);
+  return (Number.isFinite(megabytes) && megabytes > 0 ? megabytes : 5) * 1024 * 1024;
+}
 
-      if (!serviceName) {
-        return cb(new Error('O nome do serviço é obrigatório! Use o cabeçalho "x-service", parâmetro "service" ou no corpo da requisição.'), "");
-      }
-      
-      serviceName = serviceName.replace(/\s+/g, "_").toUpperCase();
+const fileFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  const allowedTypes = getAllowedTypes();
+  const extension = path.extname(file.originalname).toLowerCase();
+  const mimeType = file.mimetype.toLowerCase();
 
-      let subFolder = (req.headers["x-subfolder"] as string) || (req.query.subFolder as string);
-      if (!subFolder && req.body.data && data) {
-        try {
-          subFolder = data.subFolder;
-        } catch (error) {
-          console.error("Erro ao ler subFolder do body.data: ", error);
-        }
-      }
-      
-      if (subFolder) {
-        subFolder = subFolder.replace(/\s+/g, "_").toUpperCase();
-      }
+  const isAllowed = allowedTypes.some((type) => {
+    const normalized = type.startsWith('.') ? type : `.${type}`;
+    return extension === normalized || mimeType.includes(type.replace(/^\./, ''));
+  });
 
-      const finalDir = subFolder ? path.join(uploadDir, serviceName, subFolder) : path.join(uploadDir, serviceName);
-      if (!fs.existsSync(finalDir)) {
-        fs.mkdirSync(finalDir, { recursive: true });
-      }
-
-      cb(null, finalDir);
-    } catch (error: any) {
-      console.error("Erro ao processar o nome do serviço ou subpasta: ", error);
-      cb(new Error("Erro ao processar o nome do serviço ou subpasta."), "");
-    }
-  },
-  filename: (req: Request, file: Express.Multer.File, cb) => {
-    const fileId = uuidv4();
-    cb(null, `${fileId}-${file.originalname}`);
-  },
-});
-
-const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = env.ALLOWED_FILE_TYPES.split(",");
-  const extname = path.extname(file.originalname).toLowerCase();
-  const mimetype = file.mimetype;
-
-  if (allowedTypes.some((type) => extname.includes(type) || mimetype.includes(type))) {
-    cb(null, true);
-  } else {
-    cb(new Error("Apenas imagens são permitidas!"));
+  if (!isAllowed) {
+    cb(new Error('File type is not allowed.'));
+    return;
   }
+
+  cb(null, true);
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+const tempUploadDir = 'tmp/';
+fs.mkdirSync(tempUploadDir, { recursive: true });
 
-export default upload;
+export const uploadToTemp = multer({
+  dest: tempUploadDir,
+  fileFilter,
+  limits: { fileSize: getMaxFileSizeBytes() },
+});
+
+export default uploadToTemp;

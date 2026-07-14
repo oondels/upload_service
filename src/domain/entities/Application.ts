@@ -4,6 +4,7 @@ export class Application {
     public readonly name: string,
     public readonly folderName: string,
     public readonly isActive: boolean,
-    public readonly createdAt: Date
+    public readonly createdAt: Date,
+    public readonly updatedAt: Date = createdAt
   ) {}
 }

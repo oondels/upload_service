@@ -20,14 +20,15 @@ export class ProcessUploadUseCase {
     tempFilePath: string;
   }): Promise<string> {
     const app = await this.applicationRepository.findByFolderName(params.applicationFolderName);
-    
+
     if (!app || !app.isActive) {
       throw new Error('Application not found or inactive');
     }
 
     const correlationId = randomUUID();
-    const fileName = `${correlationId}-${params.originalName}`;
-    const expiresAt = params.retentionDays ? new Date(Date.now() + params.retentionDays * 24 * 60 * 60 * 1000) : null;
+    const fileName = `${correlationId}.webp`;
+    const retentionDays = params.retentionDays ?? null;
+    const expiresAt = retentionDays ? new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000) : null;
 
     const document = new UploadedDocument(
       randomUUID(),
@@ -35,11 +36,11 @@ export class ProcessUploadUseCase {
       app.id,
       params.originalName,
       fileName,
-      params.tempFilePath, // Path temporário do Multer
-      '', // URL definitiva será preenchida pelo Worker
+      params.tempFilePath,
+      '',
       params.mimeType,
       params.sizeBytes,
-      params.retentionDays || null,
+      retentionDays,
       expiresAt,
       'QUEUED',
       new Date(),

@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Application } from '../../../domain/entities/Application';
 
-@Entity('applications')
+@Entity('applications', { schema: 'core' })
 export class ApplicationEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -18,7 +18,10 @@ export class ApplicationEntity {
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt!: Date;
 
+  @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
+  updatedAt!: Date;
+
   toDomain(): Application {
-    return new Application(this.id, this.name, this.folderName, this.isActive, this.createdAt);
+    return new Application(this.id, this.name, this.folderName, this.isActive, this.createdAt, this.updatedAt);
   }
 }

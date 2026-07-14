@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { UploadedDocument, DocumentStatus } from '../../../domain/entities/UploadedDocument';
 import { ApplicationEntity } from './ApplicationEntity';
 
-@Entity('uploaded_documents')
+@Entity('uploaded_documents', { schema: 'uploads' })
 export class UploadedDocumentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

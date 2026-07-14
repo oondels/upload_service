@@ -13,14 +13,17 @@ interface EnvVars {
   FILE_URL_PATH: string;
   MAX_FILE_SIZE: string;
   ALLOWED_FILE_TYPES: string;
+  IMAGE_WEBP_QUALITY: string;
+  IMAGE_MAX_WIDTH: string;
+  IMAGE_MAX_HEIGHT: string;
   DEV_ENV?: string;
   DB_HOST?: string;
   DB_PORT?: string;
   DB_USER?: string;
   DB_PASSWORD?: string;
   DB_NAME?: string;
-  OTL_TRACE_EXPORTER_URL?:string;
-  OTL_METRICS_EXPORTER_URL?:string;
+  OTL_TRACE_EXPORTER_URL?: string;
+  OTL_METRICS_EXPORTER_URL?: string;
   SERVICE_VERSION: string;
 }
 
@@ -28,8 +31,11 @@ const vars: EnvVars = {
   REDIS_URL: process.env.REDIS_URL || "",
   UPLOAD_FOLDER: process.env.UPLOAD_FOLDER || "",
   FILE_URL_PATH: process.env.FILE_URL_PATH || "http://localhost/uploads/",
-  MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || "",
-  ALLOWED_FILE_TYPES: process.env.ALLOWED_FILE_TYPES || "",
+  MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || "5",
+  ALLOWED_FILE_TYPES: process.env.ALLOWED_FILE_TYPES || ".jpg,.jpeg,.png,.webp",
+  IMAGE_WEBP_QUALITY: process.env.IMAGE_WEBP_QUALITY || "80",
+  IMAGE_MAX_WIDTH: process.env.IMAGE_MAX_WIDTH || "1920",
+  IMAGE_MAX_HEIGHT: process.env.IMAGE_MAX_HEIGHT || "1080",
   DEV_ENV: process.env.DEV_ENV,
   DB_HOST: process.env.DB_HOST,
   DB_PORT: process.env.DB_PORT,
