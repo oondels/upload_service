@@ -9,6 +9,8 @@ dotenv.config({
 
 interface EnvVars {
   REDIS_URL: string;
+  REDIS_HOST?: string;
+  REDIS_PORT?: string;
   UPLOAD_FOLDER: string;
   FILE_URL_PATH: string;
   MAX_FILE_SIZE: string;
@@ -27,8 +29,34 @@ interface EnvVars {
   SERVICE_VERSION: string;
 }
 
+function resolveRedisUrl(): string {
+  const redisUrl = process.env.REDIS_URL || "";
+
+  if (!redisUrl || (!process.env.REDIS_HOST && !process.env.REDIS_PORT)) {
+    return redisUrl;
+  }
+
+  try {
+    const parsedUrl = new URL(redisUrl);
+
+    if (process.env.REDIS_HOST) {
+      parsedUrl.hostname = process.env.REDIS_HOST;
+    }
+
+    if (process.env.REDIS_PORT) {
+      parsedUrl.port = process.env.REDIS_PORT;
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    return redisUrl;
+  }
+}
+
 const vars: EnvVars = {
-  REDIS_URL: process.env.REDIS_URL || "",
+  REDIS_URL: resolveRedisUrl(),
+  REDIS_HOST: process.env.REDIS_HOST,
+  REDIS_PORT: process.env.REDIS_PORT,
   UPLOAD_FOLDER: process.env.UPLOAD_FOLDER || "",
   FILE_URL_PATH: process.env.FILE_URL_PATH || "http://localhost/uploads/",
   MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || "5",

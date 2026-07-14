@@ -7,8 +7,12 @@ services:
       - "3020:3020"
     volumes:
       - /home/oendel/Documentos/uploads:/app/uploads
+    env_file:
+      - .env
     environment:
       DEV_ENV: development
+      OTL_METRICS_EXPORTER_URL: http://lgtm:4318/v1/metrics
+      OTL_TRACE_EXPORTER_URL: http://lgtm:4318/v1/traces
     networks:
       - dass_private
 
