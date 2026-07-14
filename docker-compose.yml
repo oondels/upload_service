@@ -6,10 +6,11 @@ services:
     ports:
       - "3020:3020"
     volumes:
-      - /home/oendel/Documentos/uploads:/app/uploads
+      - ${HOST_UPLOAD_FOLDER:-/var/lib/dass/uploads}:/app/uploads
     env_file:
       - .env
     environment:
+      UPLOAD_FOLDER: /app/uploads
       DEV_ENV: development
       OTL_METRICS_EXPORTER_URL: http://lgtm:4318/v1/metrics
       OTL_TRACE_EXPORTER_URL: http://lgtm:4318/v1/traces
