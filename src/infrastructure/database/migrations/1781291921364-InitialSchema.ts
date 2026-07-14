@@ -4,13 +4,12 @@ export class InitialSchema1781291921364 implements MigrationInterface {
   name = 'InitialSchema1781291921364';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
     await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "core"`);
     await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "uploads"`);
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "core"."applications" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "name" character varying(255) NOT NULL,
         "folder_name" character varying(100) NOT NULL,
         "is_active" boolean NOT NULL DEFAULT true,
@@ -23,7 +22,7 @@ export class InitialSchema1781291921364 implements MigrationInterface {
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "uploads"."uploaded_documents" (
-        "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+        "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "correlation_id" uuid NOT NULL,
         "application_id" uuid NOT NULL,
         "original_name" character varying(255) NOT NULL,

@@ -11,6 +11,7 @@ export const AppDataSource = new DataSource({
   username: env.DB_USER || 'postgres',
   password: env.DB_PASSWORD || 'postgres',
   database: env.DB_NAME || 'sest',
+  uuidExtension: 'pgcrypto',
   synchronize: false,
   logging: false,
   entities: [ApplicationEntity, UploadedDocumentEntity],
