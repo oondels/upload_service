@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
@@ -25,10 +26,17 @@ export function createApp() {
     message: { error: 'Muitas requisições deste IP, tente novamente mais tarde.' },
   });
 
-  app.use(helmet());
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors());
   app.use(express.json());
   app.use(limiter);
+
+  const uploadPath = process.env.UPLOAD_FOLDER || path.resolve(__dirname, '../../uploads');
+  app.use('/uploads', express.static(uploadPath, {
+    setHeaders: (res) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
+  }));
 
   const applicationRepo = new ApplicationRepository();
   const documentRepo = new DocumentRepository();
@@ -47,6 +55,7 @@ export function createApp() {
     processUploadUseCase: new ProcessUploadUseCase(applicationRepo, documentRepo, queueProvider),
     getUploadStatusUseCase: new GetUploadStatusUseCase(documentRepo),
     storageProvider,
+    documentRepo,
   }));
 
   return app;
