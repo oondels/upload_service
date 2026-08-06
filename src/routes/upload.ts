@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { ProcessUploadUseCase } from '../application/useCases/ProcessUploadUseCase';
 import { GetUploadStatusUseCase } from '../application/useCases/GetUploadStatusUseCase';
 import { IStorageProvider } from '../domain/contracts/IStorageProvider';
+import { IDocumentRepository } from '../domain/contracts/IDocumentRepository';
 import uploadToTemp from '../config/multer';
 import { logger } from '../utils/logger';
 
@@ -9,6 +10,7 @@ export interface UploadRouteDeps {
   processUploadUseCase: ProcessUploadUseCase;
   getUploadStatusUseCase: GetUploadStatusUseCase;
   storageProvider: IStorageProvider;
+  documentRepo?: IDocumentRepository;
 }
 
 export function createUploadRoutes(deps: UploadRouteDeps): Router {
@@ -46,6 +48,30 @@ export function createUploadRoutes(deps: UploadRouteDeps): Router {
       status: document.status,
       fileUrl: document.fileUrl || null,
     });
+  });
+
+  router.delete('/api/v1/uploads', async (req: Request, res: Response): Promise<void> => {
+    const { fileUrl } = req.body;
+    if (!fileUrl) {
+      res.status(400).json({ error: 'fileUrl é obrigatório' });
+      return;
+    }
+
+    try {
+      if (deps.documentRepo) {
+         const doc = await deps.documentRepo.findByFileUrl(fileUrl);
+         if (doc) {
+             await deps.storageProvider.deleteFile(doc.filePath);
+             await deps.documentRepo.delete(doc.id);
+             res.status(200).json({ message: 'Arquivo removido com sucesso' });
+             return;
+         }
+      }
+
+      res.status(404).json({ error: 'Arquivo não encontrado no banco de dados' });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao remover arquivo' });
+    }
   });
 
   return router;

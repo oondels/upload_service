@@ -5,5 +5,7 @@ export interface IDocumentRepository {
   updateStatus(id: string, status: DocumentStatus): Promise<void>;
   updatePaths(id: string, filePath: string, fileUrl: string, mimeType?: string): Promise<void>;
   findByCorrelationId(correlationId: string): Promise<UploadedDocument | null>;
+  findByFileUrl(fileUrl: string): Promise<UploadedDocument | null>;
   findExpiredDocuments(referenceDate: Date): Promise<UploadedDocument[]>;
+  delete(id: string): Promise<void>;
 }

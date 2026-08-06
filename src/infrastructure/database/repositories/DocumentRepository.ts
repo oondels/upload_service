@@ -44,6 +44,11 @@ export class DocumentRepository implements IDocumentRepository {
     return entity ? entity.toDomain() : null;
   }
 
+  async findByFileUrl(fileUrl: string): Promise<UploadedDocument | null> {
+    const entity = await this.repo.findOne({ where: { fileUrl } });
+    return entity ? entity.toDomain() : null;
+  }
+
   async findExpiredDocuments(referenceDate: Date): Promise<UploadedDocument[]> {
     const entities = await this.repo.find({
       where: {
@@ -52,5 +57,9 @@ export class DocumentRepository implements IDocumentRepository {
       }
     });
     return entities.map(e => e.toDomain());
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.repo.delete(id);
   }
 }
