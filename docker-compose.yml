@@ -11,7 +11,7 @@ services:
       - .env
     environment:
       UPLOAD_FOLDER: /app/uploads
-      DEV_ENV: development
+      DEV_ENV: production
       OTL_METRICS_EXPORTER_URL: http://lgtm:4318/v1/metrics
       OTL_TRACE_EXPORTER_URL: http://lgtm:4318/v1/traces
     networks:
